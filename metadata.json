@@ -1,0 +1,7 @@
+{
+  "name": "Gemini-Weather-Money-App",
+  "description": "A smart alarm and weather dashboard powered by Google Gemini, featuring real-time weather updates and generative visuals.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
