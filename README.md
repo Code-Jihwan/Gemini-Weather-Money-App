@@ -66,3 +66,10 @@
    npm install
    npm run dev
    ```
+
+## 🚀 배포 (Deployment)
+이 프로젝트는 **Vercel**을 통해 배포진행함
+
+1. GitHub 저장소를 Vercel에 연결합니다.
+2. `.env.local`의 환경 변수들을 Vercel 프로젝트 설정(Environment Variables)에 등록합니다.
+3. Deploy 버튼을 누르면 배포가 완료됩니다.
