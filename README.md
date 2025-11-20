@@ -32,8 +32,37 @@
 - **Libraries**: 
   - `lucide-react`: UI 아이콘
   - `date-fns`: 날짜 및 시간 포맷팅
-- **Storage**: LocalStorage (가계부 데이터 저장)
+- **Storage**: Supabase (PostgreSQL Database)
 
 ## 🚀 개발 특징
-- **Serverless**: 별도의 백엔드 서버 없이 Gemini API와 브라우저 기능만으로 인텔리전트한 기능을 구현했습니다.
+- **Serverless & Cloud Database**: 별도의 백엔드 서버 구축 없이 Gemini API와 Supabase를 활용하여 인텔리전트한 기능과 안정적인 데이터 관리를 구현했습니다.
 - **Design**: Tailwind CSS를 활용하여 그림자, 그라디언트, 애니메이션 등 모던하고 깔끔한 UI를 구성했습니다.
+
+## ⚙️ 설치 및 실행 (Setup)
+
+1. **환경 변수 설정 (.env.local)**
+   프로젝트 루트에 `.env.local` 파일을 생성하고 아래 키를 입력하세요.
+   ```
+   VITE_GEMINI_API_KEY=your_gemini_api_key
+   VITE_SUPABASE_URL=your_supabase_url
+   VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+   ```
+
+2. **Supabase 테이블 생성**
+   Supabase SQL Editor에서 아래 쿼리를 실행하여 테이블을 생성합니다.
+   ```sql
+   create table transactions (
+     id uuid default gen_random_uuid() primary key,
+     created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+     amount numeric not null,
+     category text not null,
+     date bigint not null,
+     description text
+   );
+   ```
+
+3. **실행**
+   ```bash
+   npm install
+   npm run dev
+   ```

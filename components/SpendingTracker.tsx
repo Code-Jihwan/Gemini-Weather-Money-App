@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Utensils, Coffee, ShoppingBag, MoreHorizontal, Trash2, Plus, Calendar, Sparkles, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { getSpendingComment } from '../services/gemini';
+import { supabase } from '../services/supabaseClient';
 
 interface Transaction {
   id: string;
@@ -20,25 +21,38 @@ const SpendingTracker: React.FC<SpendingTrackerProps> = ({ onClose }) => {
   const [category, setCategory] = useState<Transaction['category'] | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [selectedDate, setSelectedDate] = useState(new Date());
-  
+  const [isLoading, setIsLoading] = useState(true);
+
   // AI Comment State
   const [aiComment, setAiComment] = useState<string>('');
   const [isCommentLoading, setIsCommentLoading] = useState(false);
 
-  // Load from LocalStorage on mount
+  // Load from Supabase on mount
   useEffect(() => {
-    const saved = localStorage.getItem('gemini_weather_ledger');
-    if (saved) {
-      setTransactions(JSON.parse(saved));
-    }
+    fetchTransactions();
   }, []);
 
-  // Save to LocalStorage whenever transactions change
-  useEffect(() => {
-    localStorage.setItem('gemini_weather_ledger', JSON.stringify(transactions));
-  }, [transactions]);
+  const fetchTransactions = async () => {
+    try {
+      setIsLoading(true);
+      const { data, error } = await supabase
+        .from('transactions')
+        .select('*')
+        .order('date', { ascending: false });
 
-  const handleSave = () => {
+      if (error) throw error;
+
+      if (data) {
+        setTransactions(data);
+      }
+    } catch (error) {
+      console.error('Error fetching transactions:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSave = async () => {
     if (!amount || !category) return;
 
     // Create date object for the selected date but with current time to preserve order
@@ -46,20 +60,45 @@ const SpendingTracker: React.FC<SpendingTrackerProps> = ({ onClose }) => {
     const entryDate = new Date(selectedDate);
     entryDate.setHours(now.getHours(), now.getMinutes(), now.getSeconds());
 
-    const newTransaction: Transaction = {
-      id: crypto.randomUUID(),
+    const newTransaction = {
       amount: parseInt(amount.replace(/,/g, ''), 10),
       category,
       date: entryDate.getTime(),
     };
 
-    setTransactions(prev => [newTransaction, ...prev]);
-    setAmount('');
-    setCategory(null);
+    try {
+      const { data, error } = await supabase
+        .from('transactions')
+        .insert([newTransaction])
+        .select();
+
+      if (error) throw error;
+
+      if (data) {
+        setTransactions(prev => [data[0], ...prev]);
+        setAmount('');
+        setCategory(null);
+      }
+    } catch (error) {
+      console.error('Error saving transaction:', error);
+      alert('저장에 실패했습니다.');
+    }
   };
 
-  const handleDelete = (id: string) => {
-    setTransactions(prev => prev.filter(t => t.id !== id));
+  const handleDelete = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('transactions')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setTransactions(prev => prev.filter(t => t.id !== id));
+    } catch (error) {
+      console.error('Error deleting transaction:', error);
+      alert('삭제에 실패했습니다.');
+    }
   };
 
   const formatCurrency = (val: number | string) => {
@@ -73,7 +112,7 @@ const SpendingTracker: React.FC<SpendingTrackerProps> = ({ onClose }) => {
   };
 
   // Filter transactions for the selected date
-  const filteredTransactions = transactions.filter(t => 
+  const filteredTransactions = transactions.filter(t =>
     new Date(t.date).toDateString() === selectedDate.toDateString()
   );
 
@@ -87,7 +126,7 @@ const SpendingTracker: React.FC<SpendingTrackerProps> = ({ onClose }) => {
         setAiComment("오늘도 무지출 챌린지 성공? 멋져요! 👍");
         return;
       }
-      
+
       setIsCommentLoading(true);
       try {
         const comment = await getSpendingComment(dailyTotal, categoriesList);
@@ -125,7 +164,7 @@ const SpendingTracker: React.FC<SpendingTrackerProps> = ({ onClose }) => {
       </div>
 
       <div className="flex-1 overflow-y-auto no-scrollbar p-6 space-y-8">
-        
+
         {/* Input Section */}
         <div className="space-y-4">
           <div>
@@ -150,11 +189,10 @@ const SpendingTracker: React.FC<SpendingTrackerProps> = ({ onClose }) => {
               <button
                 key={cat.id}
                 onClick={() => setCategory(cat.id)}
-                className={`flex flex-col items-center justify-center p-3 rounded-2xl transition-all duration-200 ${
-                  category === cat.id 
-                    ? 'bg-gray-900 text-white scale-105 shadow-lg' 
+                className={`flex flex-col items-center justify-center p-3 rounded-2xl transition-all duration-200 ${category === cat.id
+                    ? 'bg-gray-900 text-white scale-105 shadow-lg'
                     : 'bg-gray-50 text-gray-500 hover:bg-gray-100'
-                }`}
+                  }`}
               >
                 <cat.icon className={`w-6 h-6 mb-1 ${category === cat.id ? 'text-white' : ''}`} />
                 <span className="text-[10px] font-medium">{cat.label}</span>
@@ -165,14 +203,19 @@ const SpendingTracker: React.FC<SpendingTrackerProps> = ({ onClose }) => {
           <button
             onClick={handleSave}
             disabled={!amount || !category}
-            className={`w-full py-4 rounded-2xl font-bold text-lg flex items-center justify-center space-x-2 transition-all ${
-              amount && category
+            className={`w-full py-4 rounded-2xl font-bold text-lg flex items-center justify-center space-x-2 transition-all ${amount && category
                 ? 'bg-blue-600 text-white shadow-lg shadow-blue-200 hover:bg-blue-700 active:scale-95'
                 : 'bg-gray-100 text-gray-300 cursor-not-allowed'
-            }`}
+              }`}
           >
-            <Plus className="w-5 h-5" />
-            <span>기록하기</span>
+            {isLoading ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : (
+              <>
+                <Plus className="w-5 h-5" />
+                <span>기록하기</span>
+              </>
+            )}
           </button>
         </div>
 
@@ -188,15 +231,15 @@ const SpendingTracker: React.FC<SpendingTrackerProps> = ({ onClose }) => {
         <div className="pb-6">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-sm font-bold text-gray-900">소비 내역</h3>
-            
+
             {/* Date Picker */}
             <label className="relative flex items-center cursor-pointer">
               <div className="flex items-center space-x-1.5 bg-gray-100 px-3 py-1.5 rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-200 transition-colors relative z-0 pointer-events-none">
                 <Calendar className="w-3.5 h-3.5" />
                 <span>{format(selectedDate, 'yyyy.MM.dd')}</span>
               </div>
-              <input 
-                type="date" 
+              <input
+                type="date"
                 value={format(selectedDate, 'yyyy-MM-dd')}
                 onChange={(e) => {
                   if (e.target.value) {
@@ -209,7 +252,11 @@ const SpendingTracker: React.FC<SpendingTrackerProps> = ({ onClose }) => {
           </div>
 
           <div className="space-y-3 mb-6">
-            {filteredTransactions.length === 0 ? (
+            {isLoading && transactions.length === 0 ? (
+              <div className="flex justify-center py-8">
+                <Loader2 className="w-6 h-6 text-gray-300 animate-spin" />
+              </div>
+            ) : filteredTransactions.length === 0 ? (
               <p className="text-center text-gray-400 py-8 text-sm bg-gray-50/50 rounded-2xl border border-dashed border-gray-200">
                 {format(selectedDate, 'M월 d일', { locale: ko })} 내역이 없습니다.
               </p>
@@ -220,7 +267,7 @@ const SpendingTracker: React.FC<SpendingTrackerProps> = ({ onClose }) => {
                   <div key={t.id} className="flex items-center justify-between p-1 group animate-fade-in">
                     <div className="flex items-center space-x-4">
                       <div className={`p-2.5 rounded-xl ${catInfo?.color.replace('text-', 'bg-').replace('100', '50')} bg-opacity-50`}>
-                         {catInfo && <catInfo.icon className={`w-5 h-5 ${catInfo.color.split(' ')[1]}`} />}
+                        {catInfo && <catInfo.icon className={`w-5 h-5 ${catInfo.color.split(' ')[1]}`} />}
                       </div>
                       <div className="flex flex-col">
                         <span className="font-semibold text-gray-800">{catInfo?.label}</span>
@@ -231,7 +278,7 @@ const SpendingTracker: React.FC<SpendingTrackerProps> = ({ onClose }) => {
                     </div>
                     <div className="flex items-center space-x-3">
                       <span className="font-bold text-gray-900">-{formatCurrency(t.amount)}</span>
-                      <button 
+                      <button
                         onClick={() => handleDelete(t.id)}
                         className="opacity-0 group-hover:opacity-100 p-2 text-red-400 hover:bg-red-50 rounded-full transition-all"
                       >
