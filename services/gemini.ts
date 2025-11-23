@@ -3,6 +3,7 @@ import { WeatherData } from "../types";
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
+// 날씨 정보 가져오기 함수
 export const fetchWeatherWithGemini = async (): Promise<WeatherData> => {
   try {
     const response = await ai.models.generateContent({
@@ -32,7 +33,7 @@ export const fetchWeatherWithGemini = async (): Promise<WeatherData> => {
 
     const text = response.text || "";
     const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/) || text.match(/\{[\s\S]*\}/);
-    
+
     if (!jsonMatch) {
       throw new Error("Failed to parse weather JSON from model output");
     }
@@ -64,6 +65,7 @@ export const fetchWeatherWithGemini = async (): Promise<WeatherData> => {
   }
 };
 
+// 이미지 생성 함수
 export const generateWeatherImage = async (prompt: string): Promise<string | null> => {
   try {
     // Enforce the style strictly, emphasizing weather dominance
@@ -93,6 +95,7 @@ export const generateWeatherImage = async (prompt: string): Promise<string | nul
   }
 };
 
+// 가계부 소비 코멘트 생성 함수
 export const getSpendingComment = async (totalAmount: number, categories: string[]): Promise<string> => {
   try {
     const response = await ai.models.generateContent({

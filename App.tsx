@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
-import { Newspaper, Mail, Music, Sparkles, Wallet } from 'lucide-react';
+import { Wallet, Sparkles } from 'lucide-react';
 import WeatherDisplay from './components/WeatherDisplay';
 import SpendingTracker from './components/SpendingTracker';
 import { fetchWeatherWithGemini, generateWeatherImage } from './services/gemini';
@@ -9,7 +9,7 @@ import { LoadingState, WeatherData } from './types';
 
 const App: React.FC = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [isShortcutsMode, setIsShortcutsMode] = useState(false);
+  // const [isShortcutsMode, setIsShortcutsMode] = useState(false);
   const [isSpendingOpen, setIsSpendingOpen] = useState(false);
 
   // Weather State
@@ -56,9 +56,9 @@ const App: React.FC = () => {
   }, [loadWeather]);
 
   // Toggle Interaction
-  const toggleCenterMode = () => {
-    setIsShortcutsMode(prev => !prev);
-  };
+  // const toggleCenterMode = () => {
+  //   setIsShortcutsMode(prev => !prev);
+  // };
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-[#eef2f6] font-sans">
@@ -74,90 +74,60 @@ const App: React.FC = () => {
           </h1>
         </div>
 
-        {/* 2. Hero Section (Clock / Shortcuts) */}
-        <div className="flex justify-center mb-1 relative z-10">
-          <div
-            onClick={!isShortcutsMode ? toggleCenterMode : undefined}
-            className={`w-64 h-64 rounded-full bg-white shadow-[0_10px_30px_rgba(0,0,0,0.08)] flex items-center justify-center transition-all duration-500 ease-in-out hover:scale-[1.02] relative overflow-hidden ${!isShortcutsMode ? 'cursor-pointer' : 'cursor-default'}`}
-          >
-            {/* Mode: Clock */}
+        {/* 2. Hero Section (Gemini / Clock / Spending Tracker Swipe) */}
+        <div className="flex flex-col items-center mb-1 relative z-10">
+          <div className="w-64 h-64 rounded-full bg-white shadow-[0_10px_30px_rgba(0,0,0,0.08)] overflow-hidden relative group">
+
+            {/* Scroll Container */}
             <div
-              className={`absolute inset-0 flex flex-col items-center justify-center transition-opacity duration-500 ${isShortcutsMode ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+              ref={(el) => {
+                if (el && !el.dataset.scrolled) {
+                  // Use requestAnimationFrame to ensure layout is ready
+                  requestAnimationFrame(() => {
+                    el.scrollLeft = el.offsetWidth;
+                    el.dataset.scrolled = "true";
+                  });
+                }
+              }}
+              className="w-full h-full flex overflow-x-auto snap-x snap-mandatory no-scrollbar scroll-smooth"
             >
 
-              <span className="text-7xl font-bold text-gray-950 tracking-tighter">
-                {format(currentDate, 'hh:mm')}
-              </span>
-            </div>
+              {/* Slide 1: Gemini */}
+              <div className="w-full h-full flex-shrink-0 snap-center flex items-center justify-center bg-white">
+                <a
+                  href="https://gemini.google.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex flex-col items-center justify-center text-gray-600 hover:text-purple-600 transition-colors group/gemini"
+                >
+                  <div className="bg-gray-50 p-8 rounded-[3rem] mb-3 shadow-sm group-hover/gemini:scale-110 transition-transform duration-300">
+                    <Sparkles className="w-16 h-16" />
+                  </div>
+                  <span className="text-lg font-bold">Gemini</span>
+                </a>
+              </div>
 
-            {/* Mode: Shortcuts */}
-            <div className={`absolute inset-0 flex flex-wrap items-center justify-center content-center gap-x-1.5 gap-y-2 px-3 transition-all duration-500 transform ${isShortcutsMode ? 'opacity-100 scale-100 rotate-0' : 'opacity-0 scale-75 rotate-45 pointer-events-none'}`}>
+              {/* Slide 2: Clock */}
+              <div className="w-full h-full flex-shrink-0 snap-center flex flex-col items-center justify-center bg-white relative">
+                <span className="text-7xl font-bold text-gray-950 tracking-tighter select-none">
+                  {format(currentDate, 'hh:mm')}
+                </span>
+              </div>
 
-              {/* Shortcut 0: Spending Tracker */}
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setIsSpendingOpen(true);
-                }}
-                className="flex flex-col items-center justify-center text-gray-600 hover:text-emerald-600 transition-colors w-[56px]"
-              >
-                <div className="bg-gray-50 p-2 rounded-2xl mb-1 shadow-sm">
-                  <Wallet className="w-5 h-5" />
-                </div>
-                <span className="text-[9px] font-medium">가계부</span>
-              </button>
-
-
-
-              {/* Shortcut 1: News */}
-              <a href={"https://news.naver.com"} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center justify-center text-gray-600 hover:text-blue-600 transition-colors w-[56px]">
-                <div className="bg-gray-50 p-2 rounded-2xl mb-1 shadow-sm">
-                  <Newspaper className="w-5 h-5" />
-                </div>
-                <span className="text-[9px] font-medium">뉴스</span>
-              </a>
-
-              {/* Shortcut 2: Mail */}
-              <a href="https://mail.naver.com" target="_blank" rel="noopener noreferrer" className="flex flex-col items-center justify-center text-gray-600 hover:text-green-600 transition-colors w-[56px]">
-                <div className="bg-gray-50 p-2 rounded-2xl mb-1 shadow-sm">
-                  <Mail className="w-5 h-5" />
-                </div>
-                <span className="text-[9px] font-medium">메일</span>
-              </a>
-
-              {/* Shortcut 3: AI */}
-              <a href="https://gemini.google.com" target="_blank" rel="noopener noreferrer" className="flex flex-col items-center justify-center text-gray-600 hover:text-purple-600 transition-colors w-[56px]">
-                <div className="bg-gray-50 p-2 rounded-2xl mb-1 shadow-sm">
-                  <Sparkles className="w-5 h-5" />
-                </div>
-                <span className="text-[9px] font-medium">Gemini</span>
-              </a>
-
-              {/* Shortcut 4: Music */}
-              <a href="https://music.youtube.com" target="_blank" rel="noopener noreferrer" className="flex flex-col items-center justify-center text-gray-600 hover:text-red-600 transition-colors w-[56px]">
-                <div className="bg-gray-50 p-2 rounded-2xl mb-1 shadow-sm">
-                  <Music className="w-5 h-5" />
-                </div>
-                <span className="text-[9px] font-medium">음악</span>
-              </a>
-
-              {/* Shortcut 5: Spending Tracker */}
-
+              {/* Slide 3: Spending Tracker */}
+              <div className="w-full h-full flex-shrink-0 snap-center flex items-center justify-center bg-white">
+                <button
+                  onClick={() => setIsSpendingOpen(true)}
+                  className="flex flex-col items-center justify-center text-gray-600 hover:text-emerald-600 transition-colors group/btn"
+                >
+                  <div className="bg-gray-50 p-8 rounded-[3rem] mb-3 shadow-sm group-hover/btn:scale-110 transition-transform duration-300">
+                    <Wallet className="w-16 h-16" />
+                  </div>
+                  <span className="text-lg font-bold">가계부</span>
+                </button>
+              </div>
 
             </div>
-
-            {/* Toggle Back Button when in shortcut mode */}
-            {isShortcutsMode && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  toggleCenterMode();
-                }}
-                className="absolute bottom-4 text-[10px] text-gray-400 hover:text-gray-600 font-medium px-4 py-1 rounded-full bg-white/90 backdrop-blur-sm shadow-sm border border-gray-100"
-              >
-                닫기
-              </button>
-            )}
           </div>
         </div>
 
