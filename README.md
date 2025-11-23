@@ -1,5 +1,6 @@
 # Gemini Weather & Expense Tracking App  
 - https://jihwan-gemini-weather-money-app.vercel.app/
+
 이 문서는 React와 Google Gemini API를 활용한 **'스마트 날씨 및 가계부 기능 대비보드'**입니다.
 웹 브라우저에서 동작하지만, 모바일 앱과 같은 사용자 경험(Mobile-First)을 제공하도록 설계되었습니다.
 
