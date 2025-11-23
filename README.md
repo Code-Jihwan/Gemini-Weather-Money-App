@@ -101,3 +101,6 @@ gemini-weather-money-app/
 
 ## 배포 (Deployment)
 - 이 프로젝트는 **Vercel**을 통해 배포진행함
+
+## 동작 화면
+<img width="715" height="924" alt="스크린샷 2025-11-24 오전 1 14 53" src="https://github.com/user-attachments/assets/b9f84777-c2f1-4218-90f2-7141b3974f3a" />
